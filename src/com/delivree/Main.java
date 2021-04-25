@@ -20,11 +20,11 @@ public class Main {
         Product p1 = new Product(
                 "Burger",
                 12.00f,
-                new ArrayList<String> (List.of(
+                new String[]{
                         "Carne de vita",
                         "Ceapa",
                         "Branza"
-                )));
+                });
         Restaurant r1 = new Restaurant(
                 "Victoriei 18",
                 "Victoriei 18 s-a transformat intr-un loc dedicat street food-ului din intreaga lume! Ne place sa calatorim prin lume, sa luam strazile la picior si sa mancam cu pofta din mancarea autentic locala care se serveste pe strada, fierbinte si gustoasa.",
@@ -37,8 +37,14 @@ public class Main {
         rs.showRestaurants();
         rs.showMenu(r1.getRestaurantId());
 
-        User u1 = new User("Andrei", "Micuda", 21, new Address("Calea Vitan", 219, "Bucharest"));
+        User u1 = new User("Ion", "Popescu", 21, new Address("Calea Vitan", 219, "Bucharest"));
+        User u2 = new User("Andrei", "Micuda", 21, new Address("Calea Vitan", 219, "Bucharest"));
+        User u3 = new User("Maria", "Micuda", 21, new Address("Calea Vitan", 219, "Bucharest"));
+
         us.addUser(u1);
+        us.addUser(u2);
+        us.addUser(u3);
+        us.listUsers();
         us.addProductToUserCart(p1, u1.getUserId());
         us.showCart(u1.getUserId());
 

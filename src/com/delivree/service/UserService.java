@@ -5,26 +5,45 @@ import com.delivree.model.Product;
 import com.delivree.model.User;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
 public class UserService {
-    private ArrayList<User> users;
+    static final private int MAX_NUM_USERS = 100;
+    private User[] users = null;
     private final OrderService orderService;
+    private int currentNumUsers = 0;
 
     public UserService(OrderService os) {
         orderService = os;
-        this.users = new ArrayList<User>();
     }
 
     public void addUser(User user) {
-        this.users.add(user);
+        if(this.users == null) {
+            this.users = new User[]{user};
+        }
+        else {
+            if(this.users.length == MAX_NUM_USERS) {
+                System.out.println("Maximum user capacity reached.");
+                return;
+            }
+            this.users = Arrays.copyOf(this.users, this.users.length+1);
+            this.users[this.users.length-1] = user;
+        }
     }
 
     public Optional<User> getUserById(UUID userId) {
-        return this.users.stream()
-                    .filter(u -> u.getUserId() == userId)
-                    .findFirst();
+        User user = null;
+        for (int i = 0; i < this.users.length && user == null; i++) {
+            if(this.users[i].getUserId() == userId) {
+                user = this.users[i];
+            }
+        }
+        if(user == null) {
+            return Optional.empty();
+        }
+        return Optional.of(user);
     }
 
     public void addProductToUserCart(Product prod, UUID userId) {
@@ -50,5 +69,12 @@ public class UserService {
                     user.emptyCart();
                 },
                 () -> System.out.println("User not found!"));
+    }
+
+    public void listUsers() {
+        Arrays.sort(this.users);
+        for (int i = 0; i < this.users.length; i++) {
+            System.out.println(this.users[i].toString());
+        }
     }
 }

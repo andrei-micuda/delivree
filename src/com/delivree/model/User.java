@@ -3,7 +3,7 @@ package com.delivree.model;
 import java.util.ArrayList;
 import java.util.UUID;
 
-public class User extends Person {
+public class User extends Person implements Comparable<User> {
     private final UUID userId = UUID.randomUUID();
     protected ArrayList<Product> cart;
     Address deliveryAddress;
@@ -39,5 +39,19 @@ public class User extends Person {
             res += p.toString();
         }
         return res;
+    }
+
+    @Override
+    public int compareTo(User u) {
+        int res = this.getLastName().compareTo(u.getLastName());
+        if(res == 0){
+            return this.getFirstName().compareTo(u.getFirstName());
+        }
+        return res;
+    }
+
+    @Override
+    public String toString() {
+        return this.firstName + " " + this.lastName;
     }
 }
