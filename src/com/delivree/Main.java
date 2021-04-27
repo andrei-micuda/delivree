@@ -4,6 +4,7 @@ import com.delivree.model.*;
 import com.delivree.service.*;
 import com.delivree.utils.CsvReadWrite;
 import com.delivree.utils.GenericMenu;
+import com.delivree.utils.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,12 +20,14 @@ public class Main {
     public static final OrderService os = OrderService.getInstance();
     public static final UserService us = UserService.getInstance();
     public static final ReviewService revS = ReviewService.getInstance();
+
     private static final Scanner scanner = new Scanner(System.in);
+
+    private static final Logger logger = new Logger("logs.csv");
 
     private static final GenericMenu genericMenu = new GenericMenu();
 
     public static void showMenu() {
-        // Add a menu item using a Lambda expression.
         genericMenu.addMenuItem("L", "Load data", () -> {
             us.readAll("users.csv");
             ds.readAll("drivers.csv");
@@ -32,6 +35,8 @@ public class Main {
             os.readAll("orders.csv");
             rstS.readAll("restaurants.csv");
             revS.readAll("reviews.csv");
+
+            logger.write("Loaded data");
         });
 
         genericMenu.addMenuItem("S", "Save changes", () -> {
@@ -41,6 +46,8 @@ public class Main {
             os.saveAll("orders.csv");
             rstS.saveAll("restaurants.csv");
             revS.saveAll("reviews.csv");
+
+            logger.write("Saved data");
         });
 
         genericMenu.addMenuItem("addU", "Add a new user", () -> {
@@ -59,10 +66,13 @@ public class Main {
             System.out.print("City: ");
             var city = scanner.nextLine();
             us.addUser(new User(firstName, lastName, age, new Address(street, number, city)));
+
+            logger.write("Added user");
         });
 
         genericMenu.addMenuItem("listU", "List users", () -> {
             us.listUsers();
+            logger.write("Listed users");
         });
 
         genericMenu.addMenuItem("addPrdToUsr", "Add a product to a user's cart", () -> {
@@ -73,14 +83,14 @@ public class Main {
             UUID userId = null;
             for (int i = 0; i < usrLst.size(); i++) {
                 System.out.println((i+1) + ") " + usrLst.get(i).second);
-                int restChoice = scanner.nextInt();
-                scanner.nextLine();
-                while(restChoice <= 0 || restChoice > usrLst.size()){
-                    restChoice = scanner.nextInt();
-                    scanner.nextLine();
-                }
-                userId = usrLst.get(restChoice - 1).first;
             }
+            int usrChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(usrChoice <= 0 || usrChoice > usrLst.size()){
+                usrChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            userId = usrLst.get(usrChoice - 1).first;
 
             System.out.println("Add products to the user's cart (-1 to finish adding)");
             var prodLst = ps.overviewProducts();
@@ -90,15 +100,23 @@ public class Main {
                 UUID prodId = null;
                 for (int i = 0; i < prodLst.size(); i++) {
                     System.out.println((i+1) + ") " + prodLst.get(i).second);
-                    int restChoice = scanner.nextInt();
+                }
+                int restChoice = scanner.nextInt();
+                scanner.nextLine();
+                if(restChoice == -1){
+                    logger.write("Added products to user");
+                    return;
+                }
+                while(restChoice <= 0 || restChoice > prodLst.size()){
+                    restChoice = scanner.nextInt();
                     scanner.nextLine();
-                    if(restChoice == -1) return;
-                    while(restChoice <= 0 || restChoice > prodLst.size()){
-                        restChoice = scanner.nextInt();
-                        scanner.nextLine();
-                    }
-                    prodId = prodLst.get(restChoice - 1).first;
+                }
+                prodId = prodLst.get(restChoice - 1).first;
+                try{
                     us.addProductToUserCart(prodId, userId);
+                }
+                catch(Exception ex) {
+                    System.out.println(ex);
                 }
             }
         });
@@ -111,15 +129,28 @@ public class Main {
             UUID userId = null;
             for (int i = 0; i < usrLst.size(); i++) {
                 System.out.println((i+1) + ") " + usrLst.get(i).second);
-                int restChoice = scanner.nextInt();
-                scanner.nextLine();
-                while(restChoice <= 0 || restChoice > usrLst.size()){
-                    restChoice = scanner.nextInt();
-                    scanner.nextLine();
-                }
-                userId = usrLst.get(restChoice - 1).first;
             }
-            us.showCart(userId);
+            int restChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(restChoice <= 0 || restChoice > usrLst.size()){
+                restChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            userId = usrLst.get(restChoice - 1).first;
+
+            try{
+                us.showCart(userId);
+            }
+            catch(Exception ex) {
+                System.out.println(ex);
+            }
+
+            logger.write("Retrieved user cart");
+        });
+
+        genericMenu.addMenuItem("listOrd", "List orders", () -> {
+            os.showOrders();
+            logger.write("Retrieved orders");
         });
 
         genericMenu.addMenuItem("createOrd", "Create an order", () -> {
@@ -130,31 +161,159 @@ public class Main {
             UUID userId = null;
             for (int i = 0; i < usrLst.size(); i++) {
                 System.out.println((i+1) + ") " + usrLst.get(i).second);
-                int restChoice = scanner.nextInt();
-                scanner.nextLine();
-                while(restChoice <= 0 || restChoice > usrLst.size()){
-                    restChoice = scanner.nextInt();
-                    scanner.nextLine();
-                }
-                userId = usrLst.get(restChoice - 1).first;
             }
-            us.createOrder(userId);
+            int restChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(restChoice <= 0 || restChoice > usrLst.size()){
+                restChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            userId = usrLst.get(restChoice - 1).first;
+
+            try{
+                us.createOrder(userId);
+            }
+            catch(Exception ex) {
+                System.out.println(ex);
+            }
+
+            logger.write("Created order");
+        });
+
+        genericMenu.addMenuItem("cancelOrd", "Cancel an order", () -> {
+            System.out.println("Which user does the order belong to?");
+            var usrLst = us.overviewUsers();
+            if(usrLst == null) return;
+
+            UUID userId = null;
+            for (int i = 0; i < usrLst.size(); i++) {
+                System.out.println((i+1) + ") " + usrLst.get(i).second);
+            }
+            int restChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(restChoice <= 0 || restChoice > usrLst.size()){
+                restChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            userId = usrLst.get(restChoice - 1).first;
+
+            System.out.println("Which order do you want to cancel?");
+            var ordLst = os.overviewUncompletedOrdersByUserId(userId);
+            if(ordLst == null) return;
+
+            UUID ordId = null;
+            for (int i = 0; i < ordLst.size(); i++) {
+                System.out.println((i+1) + ") " + ordLst.get(i).second);
+            }
+
+            int ordChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(ordChoice <= 0 || ordChoice > ordLst.size()){
+                ordChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            ordId = ordLst.get(ordChoice - 1).first;
+            os.cancelOrder(ordId);
+
+            logger.write("Cancel order");
+        });
+
+        genericMenu.addMenuItem("getOrdStatus", "Show the status of a certain order", () -> {
+            System.out.println("Which user does the order belong to?");
+            var usrLst = us.overviewUsers();
+            if(usrLst == null) return;
+
+            UUID userId = null;
+            for (int i = 0; i < usrLst.size(); i++) {
+                System.out.println((i+1) + ") " + usrLst.get(i).second);
+            }
+            int usrChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(usrChoice <= 0 || usrChoice > usrLst.size()){
+                usrChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            userId = usrLst.get(usrChoice - 1).first;
+
+            System.out.println("Which order do you want to get the status of?");
+            var ordLst = os.overviewUncompletedOrdersByUserId(userId);
+            if(ordLst == null) return;
+
+            UUID ordId = null;
+            for (int i = 0; i < ordLst.size(); i++) {
+                System.out.println((i+1) + ") " + ordLst.get(i).second);
+            }
+
+            int ordChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(ordChoice <= 0 || ordChoice > ordLst.size()){
+                ordChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            ordId = ordLst.get(ordChoice - 1).first;
+            os.getOrderStatus(ordId);
+
+            logger.write("Retrieved order status");
+        });
+
+        genericMenu.addMenuItem("completeOrder", "Complete a certain order", () -> {
+            System.out.println("Which user does the order belong to?");
+            var usrLst = us.overviewUsers();
+            if(usrLst == null) return;
+
+            UUID userId = null;
+            for (int i = 0; i < usrLst.size(); i++) {
+                System.out.println((i+1) + ") " + usrLst.get(i).second);
+            }
+            int usrChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(usrChoice <= 0 || usrChoice > usrLst.size()){
+                usrChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            userId = usrLst.get(usrChoice - 1).first;
+
+            System.out.println("Which order do you want to complete?");
+            var ordLst = os.overviewUncompletedOrdersByUserId(userId);
+            if(ordLst == null) return;
+
+            UUID ordId = null;
+            for (int i = 0; i < ordLst.size(); i++) {
+                System.out.println((i+1) + ") " + ordLst.get(i).second);
+            }
+            int ordChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(ordChoice <= 0 || ordChoice > ordLst.size()){
+                ordChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            ordId = ordLst.get(ordChoice - 1).first;
+
+            try {
+                os.completeOrder(ordId);
+            }
+            catch(Exception ex) {
+                System.out.println(ex);
+            }
+
+            logger.write("Completed order");
         });
 
         genericMenu.addMenuItem("addPrd", "Add a new product", () -> {
             System.out.println("Which restaurant does the product belong to?");
-            var restLst = rstS.restaurantsOverview();
+            var restLst = rstS.overviewRestaurants();
             UUID restId = null;
             for (int i = 0; i < restLst.size(); i++) {
                 System.out.println((i+1) + ") " + restLst.get(i));
-                int restChoice = scanner.nextInt();
-                scanner.nextLine();
-                while(restChoice <= 0 || restChoice > restLst.size()){
-                    restChoice = scanner.nextInt();
-                    scanner.nextLine();
-                }
-                restId = rstS.getRestaurantIdFromName(restLst.get(restChoice - 1)).get();
             }
+            int restChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(restChoice <= 0 || restChoice > restLst.size()){
+                restChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            restId = rstS.getRestaurantIdFromName(restLst.get(restChoice - 1)).get();
+
             System.out.print("Product name: ");
             var productName = scanner.nextLine();
             System.out.print("Price: ");
@@ -167,10 +326,14 @@ public class Main {
                     .toArray(String[]::new);
 
             ps.addProduct(new Product(restId, productName, price, lst));
+
+            logger.write("Added product");
         });
 
         genericMenu.addMenuItem("listPrd", "List products", () -> {
             ps.listProducts();
+
+            logger.write("Retrieved products");
         });
 
         genericMenu.addMenuItem("addRst", "Add a new restaurant", () -> {
@@ -187,10 +350,40 @@ public class Main {
             var city = scanner.nextLine();
 
             rstS.addRestaurant(new Restaurant(name, desc, new Address(street, number, city)));
+
+            logger.write("Added restaurant");
         });
 
         genericMenu.addMenuItem("listRst", "List restaurants", () -> {
             rstS.listRestaurants();
+
+            logger.write("Retrieved restaurants");
+        });
+
+        genericMenu.addMenuItem("showRstMenu", "Show the menu of a restaurant", () -> {
+            System.out.println("Restaurant:");
+            var restLst = rstS.overviewRestaurants();
+            UUID restId = null;
+            for (int i = 0; i < restLst.size(); i++) {
+                System.out.println((i+1) + ") " + restLst.get(i));
+            }
+
+            int restChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(restChoice <= 0 || restChoice > restLst.size()){
+                restChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            restId = rstS.getRestaurantIdFromName(restLst.get(restChoice - 1)).get();
+
+            try {
+                rstS.showMenu(restId);
+            }
+            catch(Exception ex) {
+                System.out.println(ex);
+            }
+
+            logger.write("Retrieved restaurant menu");
         });
 
         genericMenu.addMenuItem("addDrv", "Add a new driver", () -> {
@@ -215,11 +408,132 @@ public class Main {
                 }
             }
             ds.addDriver(new Driver(firstName, lastName, age, enumVehicle));
+
+            logger.write("Added driver");
         });
 
         genericMenu.addMenuItem("listDrv", "List drivers", () -> {
             ds.listDrivers();
+
+            logger.write("Retrieved drivers");
         });
+
+        genericMenu.addMenuItem("assignDrvToOrd", "Assign a driver to an order", () -> {
+            System.out.println("Which user does the order belong to?");
+            var usrLst = us.overviewUsers();
+            if(usrLst == null) return;
+
+            UUID userId = null;
+            for (int i = 0; i < usrLst.size(); i++) {
+                System.out.println((i+1) + ") " + usrLst.get(i).second);
+            }
+            int usrChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(usrChoice <= 0 || usrChoice > usrLst.size()){
+                usrChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            userId = usrLst.get(usrChoice - 1).first;
+
+            System.out.println("Which order do you want to assign a driver to?");
+            var ordLst = os.overviewUncompletedOrdersByUserId(userId);
+            if(ordLst == null) return;
+
+            UUID ordId = null;
+            for (int i = 0; i < ordLst.size(); i++) {
+                System.out.println((i+1) + ") " + ordLst.get(i).second);
+            }
+            int ordChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(ordChoice <= 0 || ordChoice > ordLst.size()){
+                ordChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            ordId = ordLst.get(ordChoice - 1).first;
+
+            try {
+                os.assignDriverToOrder(ordId, ds.getFirstAvailableDriver());
+            }
+            catch(Exception ex) {
+                System.out.println(ex);
+            }
+
+            logger.write("Assigned driver to order");
+        });
+
+        genericMenu.addMenuItem("addRev", "Add a review to a restaurant", () -> {
+            System.out.println("Which user does the review belong to?");
+            var usrLst = us.overviewUsers();
+            if(usrLst == null) return;
+
+            UUID userId = null;
+            for (int i = 0; i < usrLst.size(); i++) {
+                System.out.println((i+1) + ") " + usrLst.get(i).second);
+            }
+            int usrChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(usrChoice <= 0 || usrChoice > usrLst.size()){
+                usrChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            userId = usrLst.get(usrChoice - 1).first;
+
+            System.out.println("Which restaurant does the review belong to?");
+            var restLst = rstS.overviewRestaurants();
+            UUID restId = null;
+            for (int i = 0; i < restLst.size(); i++) {
+                System.out.println((i+1) + ") " + restLst.get(i));
+            }
+
+            int restChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(restChoice <= 0 || restChoice > restLst.size()){
+                restChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            restId = rstS.getRestaurantIdFromName(restLst.get(restChoice - 1)).get();
+
+            System.out.print("Rating(1-5): ");
+            int rating = scanner.nextInt();
+            scanner.nextLine();
+            while(rating < 1 || rating > 5){
+                rating = scanner.nextInt();
+                scanner.nextLine();
+            }
+
+            System.out.println("Message (no commas, one line):");
+            String message = scanner.nextLine();
+            revS.addReview(new Review(userId, restId, rating, message));
+
+            logger.write("Added review to restaurant");
+        });
+
+        genericMenu.addMenuItem("listRev", "Show the reviews of a restaurant", () -> {
+            System.out.println("Restaurant:");
+            var restLst = rstS.overviewRestaurants();
+            UUID restId = null;
+            for (int i = 0; i < restLst.size(); i++) {
+                System.out.println((i+1) + ") " + restLst.get(i));
+            }
+
+            int restChoice = scanner.nextInt();
+            scanner.nextLine();
+            while(restChoice <= 0 || restChoice > restLst.size()){
+                restChoice = scanner.nextInt();
+                scanner.nextLine();
+            }
+            restId = rstS.getRestaurantIdFromName(restLst.get(restChoice - 1)).get();
+
+            try {
+                rstS.showRestaurantReviews(restId);
+            }
+            catch(Exception ex) {
+                System.out.println(ex);
+            }
+
+            logger.write("Retrieved restaurant reviews");
+        });
+
         genericMenu.initMenu();
     }
 

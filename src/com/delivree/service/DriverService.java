@@ -53,12 +53,10 @@ public class DriverService {
                 .orElse(null);
     }
 
-    public void increaseCompletedDeliveries(UUID driverId) {
+    public void increaseCompletedDeliveries(UUID driverId) throws Exception {
         var driverOpt = this.getDriverById(driverId);
-        driverOpt.ifPresentOrElse(
-                driver -> driver.setCompletedDeliveries(driver.getCompletedDeliveries() + 1),
-                () -> System.out.println("Driver not found!")
-        );
+        var driver = driverOpt.orElseThrow(() -> new Exception("Driver not found"));
+        driver.setCompletedDeliveries(driver.getCompletedDeliveries() + 1);
     }
 
     public void showDrivers() {

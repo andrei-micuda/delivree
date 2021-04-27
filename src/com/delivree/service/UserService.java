@@ -70,29 +70,25 @@ public class UserService {
     }
 
 
-    public void addProductToUserCart(UUID prodId, UUID userId) {
+    public void addProductToUserCart(UUID prodId, UUID userId) throws Exception {
         var userOpt = this.getUserById(userId);
-        userOpt.ifPresentOrElse(
-                user -> user.addToCart(prodId),
-                () -> System.out.println("User not found!"));
+        var user = userOpt.orElseThrow(() -> new Exception("User not found"));
+        user.addToCart(prodId);
     }
 
-    public void showCart(UUID userId) {
+    public void showCart(UUID userId) throws Exception {
         var userOpt = this.getUserById(userId);
-        userOpt.ifPresentOrElse(
-                user -> System.out.println(user.printCart()),
-                () -> System.out.println("User not found!"));
+        var user = userOpt.orElseThrow(() -> new Exception("User not found"));
+        System.out.println(user.printCart());
     }
 
-    public void createOrder(UUID userId) {
+    public void createOrder(UUID userId) throws Exception {
         var userOpt = this.getUserById(userId);
-        userOpt.ifPresentOrElse(
-                user -> {
-                    var newOrder = new Order(user.getUserId(), user.getCart());
-                    orderService.addOrder(newOrder);
-                    user.emptyCart();
-                },
-                () -> System.out.println("User not found!"));
+        var user = userOpt.orElseThrow(() -> new Exception("User not found"));
+
+        var newOrder = new Order(user.getUserId(), user.getCart());
+        orderService.addOrder(newOrder);
+        user.emptyCart();
     }
 
     public void listUsers() {

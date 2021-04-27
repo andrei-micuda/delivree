@@ -104,7 +104,10 @@ public class Order implements Comparable<Order>, ICsvConvertible<Order> {
         ArrayList s = new ArrayList<String>();
         s.add(this.orderId.toString());
         s.add(this.userId.toString());
-        s.add(this.driverId.toString());
+        if(this.driverId != null)
+            s.add(this.driverId.toString());
+        else
+            s.add("null");
         s.add(this.timePlaced.toString());
         s.add(this.status.toString());
         s.add(Integer.toString(this.products.length));
@@ -118,7 +121,9 @@ public class Order implements Comparable<Order>, ICsvConvertible<Order> {
         var parts = csv.split(",");
         UUID orderId = UUID.fromString(parts[0]);
         UUID userId = UUID.fromString(parts[1]);
-        UUID driverId = UUID.fromString(parts[2]);
+        UUID driverId = null;
+        if(!parts[2].equals("null"))
+            driverId = UUID.fromString(parts[2]);
         ZonedDateTime timePlaced = ZonedDateTime.parse(parts[3]);
         OrderStatus status = OrderStatus.valueOf(parts[4]);
         var products = new ArrayList<UUID>();

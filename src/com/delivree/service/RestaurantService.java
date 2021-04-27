@@ -60,7 +60,7 @@ public class RestaurantService {
         return Optional.of(new ArrayList<Product>(products));
     }
 
-    public ArrayList<String> restaurantsOverview() {
+    public ArrayList<String> overviewRestaurants() {
         var res = new ArrayList<String>();
         for(var r : this.restaurants) {
             res.add(r.getName());
@@ -75,45 +75,38 @@ public class RestaurantService {
         }
     }
 
-    public void showMenu(UUID restId) {
+    public void showMenu(UUID restId) throws Exception {
         System.out.println("MENU:");
         var menuOpt = this.getMenuByRestaurantId(restId);
-        menuOpt.ifPresentOrElse(
-                menu -> {
-                    for(var prod : menu) {
-                        System.out.println(prod.toString());
-                    }
-                },
-                () -> System.out.println("Restaurant not found!"));
+        var menu = menuOpt.orElseThrow(() -> new Exception("Restaurant not found"));
+
+        for(var prod : menu) {
+            System.out.println(prod.toString());
+        }
     }
 
-    public void addProductToRestaurant(Product prod, UUID restId) {
+    public void addProductToRestaurant(Product prod, UUID restId) throws Exception {
         var restOpt = this.getRestaurantById(restId);
-        restOpt.ifPresentOrElse(
-                rest -> rest.getProducts().add(prod.getProductId()),
-                () -> System.out.println("Restaurant not found!"));
+        var rest = restOpt.orElseThrow(() -> new Exception("Restaurant not found"));
+        rest.getProducts().add(prod.getProductId());
     }
 
-    public void addReviewToRestaurant(Review rev) {
+    public void addReviewToRestaurant(Review rev) throws Exception {
         var restOpt = this.getRestaurantById(rev.getRestaurantId());
-        restOpt.ifPresentOrElse(
-                rest -> {
-                    revS.addReview(rev);
-                    rest.addReview(rev.getUserId());
-                },
-                () -> System.out.println("Restaurant not found!"));
+        var rest = restOpt.orElseThrow(() -> new Exception("Restaurant not found"));
+
+        revS.addReview(rev);
+        rest.addReview(rev.getUserId());
     }
 
-    public void showRestaurantReviews(UUID restId) {
+    public void showRestaurantReviews(UUID restId) throws Exception {
         var restOpt = this.getRestaurantById(restId);
-        restOpt.ifPresentOrElse(
-                rest -> {
-                    System.out.println(rest.getName() + " REVIEWS");
-                    for(var rev : rest.getReviews()) {
-                        System.out.println(rev.toString());
-                    }
-                },
-                () -> System.out.println("Restaurant not found!"));
+        var rest = restOpt.orElseThrow(() -> new Exception("Restaurant not found"));
+
+        System.out.println(rest.getName() + " REVIEWS");
+        for(var rev : rest.getReviews()) {
+            System.out.println(rev.toString());
+        }
     }
 
     public void saveAll(String file_path) {

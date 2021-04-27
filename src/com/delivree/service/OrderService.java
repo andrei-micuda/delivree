@@ -5,6 +5,7 @@ import com.delivree.model.OrderStatus;
 import com.delivree.model.Restaurant;
 import com.delivree.model.User;
 import com.delivree.utils.CsvReadWrite;
+import com.delivree.utils.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,6 +28,15 @@ public class OrderService {
         driverService = DriverService.getInstance();
     }
 
+    public String getOrderStatus(UUID orderId) {
+        return this.orders.stream()
+                .filter(o -> o.getOrderId().equals(orderId))
+                .map(o -> o.getStatus())
+                .findFirst()
+                .get()
+                .toString();
+    }
+
     public Optional<Order> getOrderById(UUID orderId) {
         return this.orders.stream()
                 .filter(o -> o.getOrderId().equals(orderId))
@@ -40,12 +50,14 @@ public class OrderService {
         }
     }
 
-    public List<Order> getUncompletedOrdersByUserId(UUID userId){
-        return orders.stream()
+    public ArrayList<Pair<UUID, String>> overviewUncompletedOrdersByUserId(UUID userId){
+        var lst =  orders.stream()
                 .filter(o ->
                         o.getUserId().equals(userId) &&
                         (o.getStatus().equals(OrderStatus.Placed) ||o.getStatus().equals(OrderStatus.Delivering)))
+                .map(o -> new Pair<UUID, String>(o.getOrderId(), o.toString()))
                 .collect(Collectors.toList());
+        return new ArrayList<>(lst);
     }
 
     public void showUserOrderHistory(UUID userId) {
@@ -71,26 +83,25 @@ public class OrderService {
         );
     }
 
-    public void assignDriverToOrder(UUID orderId, UUID driverId) {
+    public void assignDriverToOrder(UUID orderId, UUID driverId) throws Exception {
         var orderOpt = this.getOrderById(orderId);
-        orderOpt.ifPresentOrElse(
-                order -> {
-                    order.setDriverId(driverId);
-                    order.setStatus(OrderStatus.Delivering);
-                },
-                () -> System.out.println("Order not found!")
-        );
+        var order = orderOpt.orElseThrow(() -> new Exception("Order not found"));
+
+        order.setDriverId(driverId);
+        order.setStatus(OrderStatus.Delivering);
     }
 
-    public void completeOrder(UUID orderId) {
+    public void completeOrder(UUID orderId) throws Exception {
         var orderOpt = this.getOrderById(orderId);
-        orderOpt.ifPresentOrElse(
-                order -> {
-                    order.setStatus(OrderStatus.Completed);
-                    driverService.increaseCompletedDeliveries(order.getDriverId());
-                },
-                () -> System.out.println("Order not found!")
-        );
+        var order = orderOpt.orElseThrow(() -> new Exception("Order not found"));
+
+        order.setStatus(OrderStatus.Completed);
+        try {
+            driverService.increaseCompletedDeliveries(order.getDriverId());
+        }
+        catch(Exception ex) {
+            System.out.println(ex);
+        }
     }
 
     public void saveAll(String file_path) {
