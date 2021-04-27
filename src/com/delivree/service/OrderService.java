@@ -2,23 +2,34 @@ package com.delivree.service;
 
 import com.delivree.model.Order;
 import com.delivree.model.OrderStatus;
+import com.delivree.model.Restaurant;
 import com.delivree.model.User;
+import com.delivree.utils.CsvReadWrite;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class OrderService {
+    private static OrderService instance;
+
+    public static OrderService getInstance() {
+        if (instance == null) {
+            instance = new OrderService();
+        }
+        return instance;
+    }
+
     private ArrayList<Order> orders;
     private final DriverService driverService;
 
-    public OrderService(DriverService ds) {
+    private OrderService() {
         orders = new ArrayList<Order>();
-        driverService = ds;
+        driverService = DriverService.getInstance();
     }
 
     public Optional<Order> getOrderById(UUID orderId) {
         return this.orders.stream()
-                .filter(o -> o.getOrderId() == orderId)
+                .filter(o -> o.getOrderId().equals(orderId))
                 .findFirst();
     }
 
@@ -32,14 +43,14 @@ public class OrderService {
     public List<Order> getUncompletedOrdersByUserId(UUID userId){
         return orders.stream()
                 .filter(o ->
-                        o.getUserId() == userId &&
-                        (o.getStatus() == OrderStatus.Placed ||o.getStatus() == OrderStatus.Delivering))
+                        o.getUserId().equals(userId) &&
+                        (o.getStatus().equals(OrderStatus.Placed) ||o.getStatus().equals(OrderStatus.Delivering)))
                 .collect(Collectors.toList());
     }
 
     public void showUserOrderHistory(UUID userId) {
         var userOrders = orders.stream()
-                        .filter(o -> o.getUserId() == userId)
+                        .filter(o -> o.getUserId().equals(userId))
                         .collect(Collectors.toList());
         Collections.sort(userOrders);
         System.out.println("USER ORDER HISTORY");
@@ -80,5 +91,19 @@ public class OrderService {
                 },
                 () -> System.out.println("Order not found!")
         );
+    }
+
+    public void saveAll(String file_path) {
+        if(this.orders == null) return;
+        CsvReadWrite.writeAll(this.orders, file_path);
+    }
+
+    public void readAll(String file_path) {
+        CsvReadWrite.readAll(file_path).ifPresent((csvs) -> {
+            var lst = csvs.stream()
+                    .map(csv -> Order.parse(csv))
+                    .collect(Collectors.toList());
+            this.orders = new ArrayList(lst);
+        });
     }
 }
