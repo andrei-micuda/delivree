@@ -1,22 +1,37 @@
 package com.delivree.model;
 
+import com.delivree.service.AddressService;
 import com.delivree.service.ProductService;
+import com.delivree.utils.DbLayer;
 import com.delivree.utils.ICsvConvertible;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.UUID;
 
 public class User extends Person implements Comparable<User>, ICsvConvertible<User> {
     private UUID userId;
+    private Connection _db = DbLayer.getInstance().getConnection();
     protected ArrayList<UUID> cart;
+    int deliveryAddressId;
     Address deliveryAddress;
-    protected ProductService ps = ProductService.getInstance();
+    private final ProductService ps = ProductService.getInstance();
+    private final AddressService as = AddressService.getInstance();
 
     public User(UUID userId, String firstName, String lastName, int age, Address deliveryAddress, ArrayList<UUID> cart) {
         super(firstName, lastName, age);
         this.userId = userId;
         this.deliveryAddress = deliveryAddress;
         this.cart = new ArrayList<UUID>(cart);
+    }
+
+    public User(UUID userId, String firstName, String lastName, int age, int deliveryAddressId) {
+        super(firstName, lastName, age);
+        this.userId = userId;
+        this.deliveryAddressId = deliveryAddressId;
+        this.deliveryAddress = as.getById(deliveryAddressId);
+        this.cart = new ArrayList<UUID>();
     }
 
     public User(String firstName, String lastName, int age, Address deliveryAddress) {
@@ -46,7 +61,9 @@ public class User extends Person implements Comparable<User>, ICsvConvertible<Us
         this.cart.add(productId);
     }
 
-    public void emptyCart() { this.cart.clear(); }
+    public void emptyCart() {
+        this.cart.clear();
+    }
 
     public String printCart() {
         String res = "";

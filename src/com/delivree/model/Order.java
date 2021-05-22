@@ -2,6 +2,7 @@ package com.delivree.model;
 
 import com.delivree.utils.ICsvConvertible;
 import com.delivree.service.ProductService;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,7 +18,7 @@ public class Order implements Comparable<Order>, ICsvConvertible<Order> {
     protected UUID driverId;
     protected ProductService ps = ProductService.getInstance();
 
-    public Order(UUID orderId, UUID userId, UUID driverId, ZonedDateTime timePlaced, OrderStatus status, ArrayList<UUID> products) {
+    public Order(UUID orderId, UUID userId, UUID driverId, ZonedDateTime timePlaced, OrderStatus status, @NotNull ArrayList<UUID> products) {
         this.orderId = orderId;
         this.userId = userId;
         this.driverId = driverId;

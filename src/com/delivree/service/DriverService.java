@@ -1,11 +1,11 @@
 package com.delivree.service;
 
-import com.delivree.model.Driver;
-import com.delivree.model.DriverStatus;
-import com.delivree.model.Restaurant;
-import com.delivree.model.User;
+import com.delivree.model.*;
 import com.delivree.utils.CsvReadWrite;
+import com.delivree.utils.DbLayer;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 public class DriverService {
     private static DriverService instance;
+    private Connection _db =DbLayer.getInstance().getConnection();
 
     public static DriverService getInstance() {
         if (instance == null) {
@@ -39,9 +40,38 @@ public class DriverService {
     }
 
     public void listDrivers() {
-        for(var d : drivers) {
-            System.out.println("DRIVERS");
-            System.out.println(d.toString());
+        System.out.println("DRIVERS");
+
+//        for(var d : drivers) {
+//            System.out.println(d.toString());
+//        }
+        try{
+            var stmt = _db.createStatement();
+            var rs = stmt.executeQuery("SELECT\n" +
+                    "    BIN_TO_UUID(driver_id) AS driver_id,\n" +
+                    "    first_name,\n" +
+                    "       last_name,\n" +
+                    "       age,\n" +
+                    "       vehicle,\n" +
+                    "       status,\n" +
+                    "       completed_deliveries\n" +
+                    "FROM drivers;");
+            while(rs.next()) {
+
+                var d = new Driver(
+                        UUID.fromString(rs.getString("driver_id")),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
+                        rs.getInt("age"),
+                        Vehicle.valueOf(rs.getString("vehicle")),
+                        DriverStatus.valueOf(rs.getString("status")),
+                        rs.getInt("completed_deliveries"));
+
+                System.out.println(d.toString());
+            }
+
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
         }
     }
 
@@ -79,5 +109,23 @@ public class DriverService {
             this.drivers = new ArrayList(lst);
         });
 
+    }
+
+    public void insert(Driver driver) {
+        try{
+            String sql = "INSERT INTO drivers\n" +
+                    "VALUES (UUID_TO_BIN(?), ?, ?, ?, ?, ?, ?);";
+            var stmt = _db.prepareStatement(sql);
+            stmt.setString(1, driver.getDriverId().toString());
+            stmt.setString(2, driver.getFirstName());
+            stmt.setString(3, driver.getLastName());
+            stmt.setInt(4, driver.getAge());
+            stmt.setString(5, driver.getVehicle().toString());
+            stmt.setString(6, driver.getStatus().toString());
+            stmt.setInt(7, driver.getCompletedDeliveries());
+            stmt.executeUpdate();
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
+        }
     }
 }

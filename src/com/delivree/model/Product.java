@@ -34,6 +34,14 @@ public class Product implements ICsvConvertible<Product> {
 
     }
 
+    public Product(UUID restaurantId, UUID productId, String name, float price, String ingredients) {
+        this.restaurantId = restaurantId;
+        this.productId = productId;
+        this.name = name;
+        this.price = price;
+        this.ingredients = ingredients.split(", ");
+    }
+
     public Product(UUID restaurantId, String name, float price, String[] ingredients) {
         this.restaurantId = restaurantId;
         this.productId = UUID.randomUUID();
@@ -74,6 +82,8 @@ public class Product implements ICsvConvertible<Product> {
     public void setName(String name) {
         this.name = name;
     }
+
+    public UUID getRestaurantId() { return this.restaurantId; }
 
     public String printIngredients() {
         String res = "";

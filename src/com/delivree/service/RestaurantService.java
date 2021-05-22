@@ -1,11 +1,13 @@
 package com.delivree.service;
 
-import com.delivree.model.Product;
-import com.delivree.model.Restaurant;
-import com.delivree.model.Review;
+import com.delivree.model.*;
 import com.delivree.utils.CsvReadWrite;
+import com.delivree.utils.DbLayer;
+import com.delivree.utils.Pair;
 
 import java.io.OptionalDataException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
@@ -15,6 +17,7 @@ import java.util.stream.Stream;
 
 public class RestaurantService {
     private static RestaurantService instance;
+    private final Connection _db;
 
     public static RestaurantService getInstance() {
         if (instance == null) {
@@ -23,6 +26,7 @@ public class RestaurantService {
         return instance;
     }
 
+    private AddressService as;
     private ProductService ps;
     private ReviewService revS;
     private ArrayList<Restaurant> restaurants;
@@ -30,6 +34,8 @@ public class RestaurantService {
     private RestaurantService() {
         this.ps = ProductService.getInstance();
         this.revS = ReviewService.getInstance();
+        this.as = as = AddressService.getInstance();
+        this._db = DbLayer.getInstance().getConnection();
         this.restaurants = new ArrayList<Restaurant>();
     }
 
@@ -44,10 +50,25 @@ public class RestaurantService {
     }
 
     public Optional<UUID> getRestaurantIdFromName(String restName) {
-        return this.restaurants.stream()
-                .filter(r -> r.getName().equals(restName))
-                .map(r -> r.getRestaurantId())
-                .findFirst();
+//        return this.restaurants.stream()
+//                .filter(r -> r.getName().equals(restName))
+//                .map(r -> r.getRestaurantId())
+//                .findFirst();
+
+        try{
+            String sql = "SELECT BIN_TO_UUID(restaurant_id) AS restaurant_id FROM restaurants WHERE name = ?;";
+            var stmt = _db.prepareStatement(sql);
+            stmt.setString(1, restName);
+            var rs = stmt.executeQuery();
+
+            rs.next();
+
+            return Optional.of(UUID.fromString(rs.getString("restaurant_id")));
+
+        } catch (SQLException ex) {
+            System.out.println(ex);
+        }
+        return Optional.empty();
     }
 
     public Optional<ArrayList<Product>> getMenuByRestaurantId(UUID restId) {
@@ -60,25 +81,91 @@ public class RestaurantService {
         return Optional.of(new ArrayList<Product>(products));
     }
 
-    public ArrayList<String> overviewRestaurants() {
-        var res = new ArrayList<String>();
-        for(var r : this.restaurants) {
-            res.add(r.getName());
+    public ArrayList<Pair<String, UUID>> overviewRestaurants() {
+        var res = new ArrayList<Pair<String, UUID>>();
+//        for(var r : this.restaurants) {
+//            res.add(r.getName());
+//        }
+        try{
+            var stmt = _db.createStatement();
+            var rs = stmt.executeQuery("SELECT\n" +
+                    "    BIN_TO_UUID(restaurant_id) AS restaurant_id,\n" +
+                    "    name,\n" +
+                    "    address_id,\n" +
+                    "    description\n" +
+                    "FROM restaurants;");
+            while(rs.next()) {
+
+                var r = new Restaurant(
+                        UUID.fromString(rs.getString("restaurant_id")),
+                        rs.getString("name"),
+                        rs.getString("description"),
+                        rs.getInt("address_id"));
+
+                res.add(new Pair(r.getName(), r.getRestaurantId()));
+            }
+
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
         }
         return res;
     }
 
     public void listRestaurants() {
-        for(var r : restaurants) {
-            System.out.println("RESTAURANTS");
-            System.out.println(r.toString());
+//        for(var r : restaurants) {
+//            System.out.println("RESTAURANTS");
+//            System.out.println(r.toString());
+//        }
+
+        try{
+            var stmt = _db.createStatement();
+            var rs = stmt.executeQuery("SELECT\n" +
+                    "    BIN_TO_UUID(restaurant_id) AS restaurant_id,\n" +
+                    "    name,\n" +
+                    "    address_id,\n" +
+                    "    description\n" +
+                    "FROM restaurants;");
+            while(rs.next()) {
+
+                var r = new Restaurant(
+                        UUID.fromString(rs.getString("restaurant_id")),
+                        rs.getString("name"),
+                        rs.getString("description"),
+                        rs.getInt("address_id"));
+
+                System.out.println(r.toString());
+            }
+
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
         }
     }
 
     public void showMenu(UUID restId) throws Exception {
         System.out.println("MENU:");
-        var menuOpt = this.getMenuByRestaurantId(restId);
-        var menu = menuOpt.orElseThrow(() -> new Exception("Restaurant not found"));
+//        var menuOpt = this.getMenuByRestaurantId(restId);
+        ArrayList<Product> menu = new ArrayList<Product>();
+
+        try{
+            String sql = "SELECT\n" +
+                    "    BIN_TO_UUID(product_id) AS product_id,\n" +
+                    "    name,\n" +
+                    "    price,\n" +
+                    "    ingredients,\n" +
+                    "    BIN_TO_UUID(restaurant_id) AS restaurant_id\n" +
+                    "FROM products WHERE restaurant_id = UUID_TO_BIN(?);";
+            var stmt = _db.prepareStatement(sql);
+            stmt.setString(1, restId.toString());
+            var rs = stmt.executeQuery();
+
+            while(rs.next())
+            {
+                var p = ps.parseResultSetItem(rs);
+                menu.add(p);
+            }
+        } catch (SQLException ex) {
+            System.out.println(ex);
+        }
 
         for(var prod : menu) {
             System.out.println(prod.toString());
@@ -121,5 +208,23 @@ public class RestaurantService {
                     .collect(Collectors.toList());
             this.restaurants = new ArrayList(lst);
         });
+    }
+
+    public void insert(Restaurant rest) {
+        try{
+            var add = rest.getLocation();
+            as.insert(add);
+            var addId = as.getId(add);
+            String sql = "INSERT INTO restaurants\n" +
+                    "VALUES (UUID_TO_BIN(?), ?, ?, ?);";
+            var stmt = _db.prepareStatement(sql);
+            stmt.setString(1, rest.getRestaurantId().toString());
+            stmt.setString(2, rest.getName());
+            stmt.setInt(3, addId);
+            stmt.setString(4, rest.getDescription());
+            stmt.executeUpdate();
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
+        }
     }
 }

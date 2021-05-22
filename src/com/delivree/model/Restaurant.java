@@ -1,5 +1,6 @@
 package com.delivree.model;
 
+import com.delivree.service.AddressService;
 import com.delivree.service.ReviewService;
 import com.delivree.utils.ICsvConvertible;
 import com.delivree.utils.Pair;
@@ -14,9 +15,11 @@ public class Restaurant implements ICsvConvertible<Restaurant> {
     protected String name;
     protected ArrayList<UUID> products;
     protected ArrayList<UUID> reviews;
+    protected int locationId;
     protected Address location;
     protected String description;
     private ReviewService rs;
+    private AddressService as;
 
     public Restaurant(UUID restaurantId, String name, String description, Address location, ArrayList<UUID> products, ArrayList<UUID> reviews) {
         this.restaurantId = restaurantId;
@@ -24,6 +27,19 @@ public class Restaurant implements ICsvConvertible<Restaurant> {
         this.description = description;
         this.products = products;
         this.reviews = reviews;
+        this.location = location;
+        this.rs = ReviewService.getInstance();
+    }
+
+    public Restaurant(UUID restaurantId, String name, String description, int locationId) {
+        this.as = AddressService.getInstance();
+        this.restaurantId = restaurantId;
+        this.name = name;
+        this.description = description;
+        this.products = new ArrayList<UUID>();
+        this.reviews = new ArrayList<UUID>();
+        this.locationId = locationId;
+        this.location = as.getById(locationId);
         this.location = location;
         this.rs = ReviewService.getInstance();
     }
