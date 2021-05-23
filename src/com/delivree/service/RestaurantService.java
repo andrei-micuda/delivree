@@ -187,12 +187,39 @@ public class RestaurantService {
     }
 
     public void showRestaurantReviews(UUID restId) throws Exception {
-        var restOpt = this.getRestaurantById(restId);
-        var rest = restOpt.orElseThrow(() -> new Exception("Restaurant not found"));
+//        var restOpt = this.getRestaurantById(restId);
+//        var rest = restOpt.orElseThrow(() -> new Exception("Restaurant not found"));
+//
+//        System.out.println(rest.getName() + " REVIEWS");
+//        for(var rev : rest.getReviews()) {
+//            System.out.println(rev.toString());
+//        }
+        try{
+            var sql = "SELECT\n" +
+                    "    BIN_TO_UUID(user_id) AS user_id,\n" +
+                    "    BIN_TO_UUID(restaurant_id) AS restaurant_id,\n" +
+                    "    rating,\n" +
+                    "    message\n" +
+                    "FROM reviews\n" +
+                    "WHERE BIN_TO_UUID(restaurant_id) = ?;";
+            var stmt = _db.prepareStatement(sql);
+            stmt.setString(1, restId.toString());
 
-        System.out.println(rest.getName() + " REVIEWS");
-        for(var rev : rest.getReviews()) {
-            System.out.println(rev.toString());
+            var rs = stmt.executeQuery();
+            while(rs.next()) {
+
+                var r = new Review(
+                        UUID.fromString(rs.getString("user_id")),
+                        UUID.fromString(rs.getString("restaurant_id")),
+                        rs.getInt("rating"),
+                        rs.getString("message")
+                        );
+
+                System.out.println(r.toString());
+            }
+
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
         }
     }
 

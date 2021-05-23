@@ -66,7 +66,7 @@ public class OrderService {
                     "    BIN_TO_UUID(driver_id) as driver_id,\n" +
                     "    time_placed,\n" +
                     "    status\n" +
-                    "FROM orders WHERE UUID_TO_BIN(order_id) = ?;";
+                    "FROM orders WHERE BIN_TO_UUID(order_id) = ?;";
             var stmt = _db.prepareStatement(sql);
             stmt.setString(1, orderId.toString());
             var rs = stmt.executeQuery();
@@ -244,8 +244,19 @@ public class OrderService {
         var orderOpt = this.getOrderById(orderId);
         var order = orderOpt.orElseThrow(() -> new Exception("Order not found"));
 
-        order.setDriverId(driverId);
-        order.setStatus(OrderStatus.Delivering);
+//        order.setDriverId(driverId);
+//        order.setStatus(OrderStatus.Delivering);
+        try{
+            String sql = "UPDATE orders\n" +
+                    "SET status = 'Delivering', driver_id = UUID_TO_BIN(?)\n" +
+                    "WHERE BIN_TO_UUID(order_id) = ?;";
+            var stmt = _db.prepareStatement(sql);
+            stmt.setString(1, driverId.toString());
+            stmt.setString(2, orderId.toString());
+            stmt.executeUpdate();
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
+        }
     }
 
     public void completeOrder(UUID orderId) throws Exception {
@@ -266,6 +277,15 @@ public class OrderService {
             var stmt = _db.prepareStatement(sql);
             stmt.setString(1, orderId.toString());
             stmt.executeUpdate();
+
+            String sql2 = "SELECT BIN_TO_UUID(driver_id) AS driver_id FROM orders WHERE BIN_TO_UUID(order_id) = ?";
+            var stmt2 = _db.prepareStatement(sql2);
+            stmt2.setString(1, orderId.toString());
+            var rs = stmt2.executeQuery();
+            rs.next();
+            var driverId = UUID.fromString(rs.getString("driver_id"));
+
+            driverService.increaseCompletedDeliveries(driverId);
         } catch (SQLException ex) {
             System.out.println(ex.toString());
         }

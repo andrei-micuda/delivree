@@ -76,17 +76,39 @@ public class DriverService {
     }
 
     public UUID getFirstAvailableDriver() {
-        return this.drivers.stream()
-                .filter(d -> d.getStatus().equals(DriverStatus.Available))
-                .map(d -> d.getDriverId())
-                .findFirst()
-                .orElse(null);
+//        return this.drivers.stream()
+//                .filter(d -> d.getStatus().equals(DriverStatus.Available))
+//                .map(d -> d.getDriverId())
+//                .findFirst()
+//                .orElse(null);
+        try{
+            var sql = "SELECT BIN_TO_UUID(driver_id) AS driver_id\n" +
+                    "FROM drivers WHERE status = 'Available'\n" +
+                    "LIMIT 1;";
+            var stmt = _db.createStatement();
+            var rs = stmt.executeQuery(sql);
+            rs.next();
+            return UUID.fromString(rs.getString("driver_id"));
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
+        }
+        return null;
     }
 
     public void increaseCompletedDeliveries(UUID driverId) throws Exception {
-        var driverOpt = this.getDriverById(driverId);
-        var driver = driverOpt.orElseThrow(() -> new Exception("Driver not found"));
-        driver.setCompletedDeliveries(driver.getCompletedDeliveries() + 1);
+//        var driverOpt = this.getDriverById(driverId);
+//        var driver = driverOpt.orElseThrow(() -> new Exception("Driver not found"));
+//        driver.setCompletedDeliveries(driver.getCompletedDeliveries() + 1);
+        try{
+            String sql = "UPDATE drivers\n" +
+                    "SET completed_deliveries = completed_deliveries + 1\n" +
+                    "WHERE BIN_TO_UUID(driver_id) = ?;";
+            var stmt = _db.prepareStatement(sql);
+            stmt.setString(1, driverId.toString());
+            stmt.executeUpdate();
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
+        }
     }
 
     public void showDrivers() {

@@ -921,12 +921,14 @@ public class Main {
             logger.write("Added driver");
         });
 
+        // DONE
         genericMenu.addMenuItem("listDrv", "List drivers", () -> {
             ds.listDrivers();
 
             logger.write("Retrieved drivers");
         });
 
+        // DONE
         genericMenu.addMenuItem("assignDrvToOrd", "Assign a driver to an order", () -> {
             System.out.println("Which user does the order belong to?");
             var usrLst = us.overviewUsers();
@@ -970,6 +972,7 @@ public class Main {
             logger.write("Assigned driver to order");
         });
 
+        // DONE
         genericMenu.addMenuItem("addRev", "Add a review to a restaurant", () -> {
             System.out.println("Which user does the review belong to?");
             var usrLst = us.overviewUsers();
@@ -1012,11 +1015,12 @@ public class Main {
 
             System.out.println("Message (no commas, one line):");
             String message = scanner.nextLine();
-            revS.addReview(new Review(userId, restId, rating, message));
+            revS.insert(new Review(userId, restId, rating, message));
 
             logger.write("Added review to restaurant");
         });
 
+        // DONE
         genericMenu.addMenuItem("listRev", "Show the reviews of a restaurant", () -> {
             System.out.println("Restaurant:");
             var restLst = rstS.overviewRestaurants();
